@@ -1,16 +1,229 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Audio Test</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Enhancement Audio Demonstration</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 30px;
+        }
+
+        h1, p {
+            text-align: center;
+        }
+
+        .container {
+            overflow-x: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background-color: white;
+        }
+
+        th, td {
+            border: 1px solid #cccccc;
+            padding: 15px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #e0e0e0;
+        }
+
+        audio {
+            width: 220px;
+            height: 45px;
+        }
+
+        .error {
+            color: red;
+            font-size: 12px;
+        }
+    </style>
 </head>
+
 <body>
 
-<h1>Audio Playback Test</h1>
+<h1>Speech Enhancement Audio Demonstration</h1>
 
-<audio controls loop preload="metadata">
-    <source src="./Audio/clean/p257_045.wav"
-            type="audio/wav">
-</audio>
+<p>Comparison of Clean, Noisy, SSL-SE, and GRPO-SE</p>
+
+<p id="status">Loading audio samples...</p>
+
+<div class="container">
+    <table>
+        <thead id="table-header"></thead>
+        <tbody id="audio-table"></tbody>
+    </table>
+</div>
+
+<script>
+
+const owner = "subrina-sultana";
+const repo = "SE-GRPO";
+const branch = "main";
+
+const methods = [
+    ["Clean", "clean"],
+    ["Noisy", "noisy"],
+    ["SSL-SE", "ssl-se"],
+    ["GRPO-SE", "grpo-se"]
+];
+
+// Automatically retrieve WAV filenames
+async function getFiles(folder) {
+
+    const url =
+        `https://api.github.com/repos/${owner}/${repo}/contents/Audio/${folder}?ref=${branch}`;
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+        throw new Error(`${folder}: HTTP ${response.status}`);
+    }
+
+    const files = await response.json();
+
+    return files
+        .filter(file =>
+            file.type === "file" &&
+            file.name.toLowerCase().endsWith(".wav")
+        )
+        .map(file => file.name)
+        .sort();
+}
+
+async function loadAudio() {
+
+    try {
+
+        // Use clean directory to determine sample names
+        const samples = await getFiles("clean");
+
+        if (samples.length === 0) {
+            throw new Error("No WAV files found.");
+        }
+
+        // Generate column headers
+        const header = document.getElementById("table-header");
+        const headerRow = header.insertRow();
+
+        headerRow.innerHTML = "<th>Method</th>";
+
+        samples.forEach((filename, i) => {
+
+            const th = document.createElement("th");
+
+            th.textContent = `Sample ${i + 1}`;
+            th.title = filename;
+
+            headerRow.appendChild(th);
+        });
+
+        const table = document.getElementById("audio-table");
+
+        // Generate four rows dynamically
+        for (const [name, folder] of methods) {
+
+            const row = table.insertRow();
+
+            const th = document.createElement("th");
+            th.textContent = name;
+            row.appendChild(th);
+
+            let files;
+
+            try {
+                files = folder === "clean"
+                    ? samples
+                    : await getFiles(folder);
+            } catch (error) {
+                const cell = row.insertCell();
+                cell.colSpan = samples.length;
+                cell.textContent = error.message;
+                continue;
+            }
+
+            samples.forEach(filename => {
+
+                const cell = row.insertCell();
+
+                if (!files.includes(filename)) {
+                    cell.textContent = "File not found";
+                    return;
+                }
+
+                const audio = document.createElement("audio");
+
+                audio.controls = true;
+                audio.loop = false;
+                audio.autoplay = false;
+                audio.preload = "metadata";
+
+                // Load WAV from GitHub Pages directory
+                audio.src =
+                    `./Audio/${folder}/${encodeURIComponent(filename)}`;
+
+                cell.appendChild(audio);
+
+                // Pause other audio samples
+                audio.addEventListener("play", () => {
+
+                    document.querySelectorAll("audio")
+                        .forEach(other => {
+
+                            if (other !== audio) {
+                                other.pause();
+                            }
+
+                        });
+                });
+
+                // Automatically stop and reset when finished
+                audio.addEventListener("ended", () => {
+
+                    audio.pause();
+                    audio.currentTime = 0;
+
+                });
+
+                // Display errors
+                audio.addEventListener("error", () => {
+
+                    const message = document.createElement("div");
+
+                    message.className = "error";
+                    message.textContent = "Cannot load audio";
+
+                    cell.appendChild(message);
+
+                    console.error("Audio error:", audio.src);
+                });
+
+            });
+        }
+
+        document.getElementById("status").textContent =
+            `${samples.length} audio samples per method`;
+
+    } catch (error) {
+
+        document.getElementById("status").textContent =
+            error.message;
+
+        console.error(error);
+    }
+}
+
+loadAudio();
+
+</script>
 
 </body>
 </html>
