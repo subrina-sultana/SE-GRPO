@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Speech Enhancement Audio Demonstration</title>
 
     <style>
@@ -13,6 +14,16 @@
 
         h1 {
             text-align: center;
+            color: #333333;
+        }
+
+        p {
+            text-align: center;
+            color: #555555;
+        }
+
+        .table-container {
+            overflow-x: auto;
         }
 
         table {
@@ -42,57 +53,73 @@
 
 <h1>Speech Enhancement Audio Demonstration</h1>
 
-<table>
-    <thead>
-        <tr>
-            <th>Method</th>
-            <th>Sample 1</th>
-            <th>Sample 2</th>
-            <th>Sample 3</th>
-            <th>Sample 4</th>
-            <th>Sample 5</th>
-        </tr>
-    </thead>
+<p>
+    Comparison of Clean, Noisy, SSL-SE, and GRPO-SE speech.
+    Each audio sample plays repeatedly until paused.
+</p>
 
-    <tbody id="audio-table"></tbody>
-</table>
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Method</th>
+                <th>Sample 1</th>
+                <th>Sample 2</th>
+                <th>Sample 3</th>
+                <th>Sample 4</th>
+                <th>Sample 5</th>
+            </tr>
+        </thead>
+
+        <tbody id="audio-table"></tbody>
+    </table>
+</div>
 
 <script>
     const methods = [
         ["Clean", "clean"],
         ["Noisy", "noisy"],
-        ["SSL-SE", "SSL-SE"],
-        ["GRPO-SE", "GRPO-SE"]
+        ["SSL-SE", "ssl-se"],
+        ["GRPO-SE", "grpo-se"]
     ];
 
     const table = document.getElementById("audio-table");
 
+    // Create four rows and five audio players per row
     methods.forEach(([name, folder]) => {
+
         const row = document.createElement("tr");
 
         row.innerHTML = `<th>${name}</th>`;
 
         for (let i = 1; i <= 5; i++) {
+
             row.innerHTML += `
                 <td>
-                    <audio controls preload="none">
-                        <source 
+                    <audio controls preload="none" loop>
+                        <source
                             src="audio/${folder}/sample${i}.wav"
                             type="audio/wav">
                     </audio>
-                </td>`;
+                </td>
+            `;
         }
 
         table.appendChild(row);
     });
 
-    // Pause other audio players when one starts playing
-    document.querySelectorAll("audio").forEach(player => {
+    // Pause other samples when a new sample starts
+    const players = document.querySelectorAll("audio");
+
+    players.forEach(player => {
         player.addEventListener("play", () => {
-            document.querySelectorAll("audio").forEach(other => {
+
+            players.forEach(other => {
+
                 if (other !== player) {
                     other.pause();
                 }
+
             });
         });
     });
